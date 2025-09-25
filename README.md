@@ -1,7 +1,7 @@
 # ⚔️ Warnation
 
 **Warnation** is a multiplayer war strategy textbased game for browsers,  built with **Node.js, Express, and MySQL**.  
-Players can battle, build fleets, earn resources, and level up in a persistent online world.
+Players can battle, build fleets, earn rewards(cash, gold, exp), and level up in a persistent online world.
 
 ---
 
