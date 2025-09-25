@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🏠 WARNATION - Homepage</title>
+    <style>
+        body {
+            background-color: darkblue;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: gold;
+        }
+        .stat-box {
+            border: 2px solid white;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .stat {
+            margin: 5px 0;
+        }
+        .menu a {
+            display: block;
+            margin: 10px 0;
+            color: skyblue;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .critical {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+    <script src="PlayerBrain.js"></script>
+</head>
+<body>
+
+<div id="levelUpMessage" style="display:none; font-size: 28px; text-align:center; padding: 10px; background: gold; color: black; font-weight: bold; border-radius: 10px; box-shadow: 0 0 15px white;">
+    🎉 LEVEL UP! 🎉<br>You earned 5 skill points!
+</div>
+
+<h1>⚔️ WARNATION</h1>
+
+<div class="stat-box">
+    <div class="stat">❤️ Health: <span id="health">0</span> / <span id="maxHealth">0</span></div>
+    <div class="stat">⚡ Energy: <span id="energy">0</span> / <span id="maxEnergy">0</span></div>
+    <div class="stat">🔫 Ammo: <span id="ammo">0</span> / <span id="maxAmmo">0</span></div>
+    <div class="stat">💰 Cash: $<span id="cash">0</span></div>
+    <div class="stat">🪙 Gold: <span id="gold">0</span></div>
+    <div class="stat">🎖️ Level: <span id="level">0</span></div>
+    <div class="stat">⭐ XP: <span id="xp">0</span>/<span id="xpNeeded">0</span></div>
+</div>
+
+<div id="menuContainer">
+    <div class="menu" id="mainMenu" style="display:none;">
+        <hr>
+        <p><a href="war.html">WAR</a></p>
+        <p><a href="missions.html">MISSIONS</a></p>
+        <p><a href="production.html">PRODUCTION</a></p>
+        <p><a href="units.html">UNITS</a></p>
+        <p><a href="structures.html">STRUCTURES</a></p>
+        <p><a href="blackmarket.html">BLACK MARKET</a></p>
+        <p><a href="officersmess.html">OFFICERS MESS</a></p>
+        <p><a href="profile.html">PROFILE</a></p>
+        <p><a href="alliance.html">ALLIANCE</a></p>
+        <p><a href="halloffame.html">HALL OF FAME</a></p>
+        <p><a href="chats.html">CHATS</a></p>
+        <p><a href="events.html">EVENTS</a></p>
+        <p><a href="settings.html">SETTINGS</a></p>
+        <button class="menu-button" onclick="alert('Contacting Support...')">Contact SP/Support</button>
+    </div>
+
+
+<div id="clock">Time: 00:00:00</div>
+<div id="date">Date: YYYY-MM-DD</div>
+<br>
+<button onclick="changeBackground()">Change Background</button>
+
+
+
+<script>
+    // ...existing code...
+    initializePlayer();
+    checkLevelUp();
+
+    function calculateXpNeeded(level) {
+        return Math.floor(1000 * (level ** 2.3));
+    }
+
+    function loadStats() {
+        const player = getPlayer();
+
+    // Always recalculate max stats according to level
+    const maxHealth = 300 + ((player.level - 1) * 5);
+    const maxEnergy = 500 + ((player.level - 1) * 5);
+    const maxAmmo = 20 + ((player.level - 1) * 1);
+
+    player.maxHealth = maxHealth;
+    player.maxEnergy = maxEnergy;
+    player.maxAmmo = maxAmmo;
+
+        // Clamp stats
+        player.health = Math.min(player.health ?? maxHealth, maxHealth);
+        player.energy = Math.min(player.energy ?? maxEnergy, maxEnergy);
+        player.ammo = Math.min(player.ammo ?? maxAmmo, maxAmmo);
+        player.cash = player.cash ?? 10000;
+        player.gold = player.gold ?? 0;
+        player.level = player.level ?? 1;
+        player.xp = player.xp ?? 0;
+
+        // Update display
+        document.getElementById('health').textContent = player.health;
+        document.getElementById('maxHealth').textContent = maxHealth;
+        document.getElementById('energy').textContent = player.energy;
+        document.getElementById('maxEnergy').textContent = maxEnergy;
+        document.getElementById('ammo').textContent = player.ammo;
+        document.getElementById('maxAmmo').textContent = maxAmmo;
+        document.getElementById('cash').textContent = player.cash;
+        document.getElementById('gold').textContent = player.gold;
+        document.getElementById('level').textContent = player.level;
+        document.getElementById('xp').textContent = player.xp;
+        document.getElementById('xpNeeded').textContent = calculateXpNeeded(player.level);
+
+        document.getElementById('health').classList.toggle('critical', player.health <= (maxHealth * 0.15));
+        document.getElementById('energy').classList.toggle('critical', player.energy <= 0);
+        document.getElementById('ammo').classList.toggle('critical', player.ammo <= 0);
+
+        // Menu restriction logic now handled by PlayerBrain.js
+        document.getElementById('mainMenu').style.display = '';
+        const menuLocks = getHomepageMenuLocks();
+        document.querySelectorAll('#mainMenu a, #mainMenu button').forEach(el => {
+            let href = el.getAttribute('href');
+            // For support button, use id
+            if (!href && el.textContent.includes('Support')) href = 'support';
+            if (menuLocks[href]) {
+                el.classList.add('disabled-link');
+                el.setAttribute('tabindex', '-1');
+                if (!el.hasAttribute('data-original-onclick')) {
+                    el.setAttribute('data-original-onclick', el.onclick);
+                }
+                el.onclick = function(e) { e.preventDefault(); return false; };
+            } else {
+                el.classList.remove('disabled-link');
+                el.removeAttribute('tabindex');
+                el.onclick = el.getAttribute('data-original-onclick');
+            }
+        });
+        // Show restriction message if any menu is locked
+        const anyLocked = Object.values(menuLocks).some(v => v);
+        if (document.getElementById('levelRestrictionMsg')) {
+            document.getElementById('levelRestrictionMsg').style.display = anyLocked ? '' : 'none';
+        }
+    }
+
+    function updateTimeAndDate() {
+        const now = new Date();
+        document.getElementById('clock').textContent = "Time: " + now.toTimeString().slice(0, 8);
+        document.getElementById('date').textContent = "Date: " + now.toISOString().slice(0, 10);
+    }
+
+    function changeBackground() {
+        // ...existing code...
+    }
+
+    function regenEnergy() {
+        // ...existing code...
+    }
+
+    function showLevelUpNotification() {
+        // ...existing code...
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadStats();
+        updateTimeAndDate();
+        setInterval(loadStats, 1000);
+        setInterval(updateTimeAndDate, 1000);
+        setInterval(regenEnergy, 10000);
+
+        if (localStorage.getItem("levelUpNotice") === "true") {
+            showLevelUpNotification();
+        }
+    });
+
+    window.addEventListener("storage", function (e) {
+        if (e.key === "levelUpNotice" && e.newValue === "true") {
+            showLevelUpNotification();
+        }
+    });
+
+    window.addEventListener("focus", loadStats);
+    window.addEventListener("storage", loadStats);
+</script>
+</body>
+    <style>
+        body {
+            background-color: darkblue;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: gold;
+        }
+        .stat-box {
+            border: 2px solid white;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .stat {
+            margin: 5px 0;
+        }
+        .menu a {
+            display: block;
+            margin: 10px 0;
+            color: skyblue;
+            text-decoration: none;
+            font-weight: bold;
+            pointer-events: auto;
+        }
+        .menu button {
+            pointer-events: auto;
+        }
+        .disabled-link {
+            color: gray !important;
+            pointer-events: none !important;
+            cursor: not-allowed !important;
+            opacity: 0.6;
+        }
+        .critical {
+            color: red;
+            font-weight: bold;
+        }
+    </style>

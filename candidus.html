@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BATTLE - WARNATION</title>
+    <script src="PlayerBrain.js"></script>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        a {
+            color: yellow;
+            font-weight: bold;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 20px;
+        }
+        .health-bar {
+            width: 300px;
+            height: 25px;
+            background-color: gray;
+            margin: 10px auto;
+            position: relative;
+        }
+        .health-fill {
+            height: 100%;
+            background-color: green;
+            width: 100%;
+            transition: width 0.5s;
+        }
+        .battle-log {
+            border: 1px solid white;
+            height: 160px;
+            width: 90%;
+            margin: 20px auto;
+            overflow-y: auto;
+            text-align: center;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .attack-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: red;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .attack-button:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        .stats {
+            text-align: left;
+            margin: 20px auto;
+            width: 300px;
+            font-size: 14px;
+            border: 1px solid white;
+            padding: 10px;
+        }
+        button.fatality-btn {
+            margin: 5px;
+            padding: 8px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+        }
+        #cutEarBtn { background-color: darkred; color: white; }
+        #pardonBtn { background-color: darkgreen; color: white; }
+        .critical { color: red; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+<div id="levelUpMessage" style="display:none; font-size: 28px; text-align:center; padding: 10px; background: gold; color: black; font-weight: bold; border-radius: 10px; box-shadow: 0 0 15px white; position:fixed; top:30px; left:50%; transform:translateX(-50%); z-index:9999;">
+    🎉 LEVEL UP! 🎉<br>You earned 5 skill points!
+</div>
+
+<a href="HomePage.html">← Back to Home</a><a href="war.html">← Back to War</a>
+
+<h1>BATTLE COMMENCED!</h1>
+<h2>You (Player) VS <span id="botName">Enemy Bot</span></h2>
+
+<div class="stats">
+    <p>Health: <span id="playerHealthDisplay">0</span>/<span id="playerMaxHealthDisplay">0</span></p>
+    <p>Energy: <span id="energyDisplay">0</span>/<span id="maxEnergyDisplay">0</span></p>
+    <p>Ammo: <span id="ammoDisplay">0</span>/<span id="maxAmmoDisplay">0</span></p>
+    <p>Cash: $<span id="cashDisplay">0</span></p>
+    <p>Gold: <span id="goldDisplay">0</span></p>
+    <p>Level: <span id="levelDisplay">0</span></p>
+    <p>XP: <span id="xpDisplay">0</span>/<span id="xpNeededDisplay">0</span></p>
+</div>
+
+<div>
+    <p>Your Health:</p>
+    <div class="health-bar">
+        <div id="playerHealthBar" class="health-fill"></div>
+    </div>
+</div>
+
+<button class="attack-button" id="attackBtn">ATTACK</button>
+
+<div class="battle-log" id="battleLog">
+    <p>Battle log will appear here...</p>
+</div>
+
+<script>
+    // --- Setup ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const botName = urlParams.get('bot') || 'Enemy Bot';
+    const botType = urlParams.get('type') || 'bot';
+    document.getElementById('botName').textContent = botName;
+
+    const botHPKey = `bot_${botName}_hp`;
+    const botTimeKey = `bot_${botName}_lastTime`;
+    const botArmyKey = `bot_${botName}_army`;
+    const botCashKey = `bot_${botName}_cash`;
+    const maxBotHealthBase = 300;
+
+    // --- Player ---
+    let player = getPlayer();
+
+    function getMaxHealth() { return 300 + ((player.level-1)*5); }
+    function getMaxEnergy() { return 500 + ((player.level-1)*5); }
+    function getMaxAmmo() { return 20 + ((player.level-1)*1); }
+
+    player.maxHealth = getMaxHealth();
+    player.maxEnergy = getMaxEnergy();
+    player.maxAmmo = getMaxAmmo();
+    function xpNeeded(level) { return Math.floor(1000*(level**2.3)); }
+
+    // Ensure current stats are at least default or max if upgraded
+    player.health = Math.min(player.health ?? getMaxHealth(), getMaxHealth());
+    player.energy = Math.min(player.energy ?? getMaxEnergy(), getMaxEnergy());
+    player.ammo = Math.min(player.ammo ?? getMaxAmmo(), getMaxAmmo());
+    player.cash = player.cash ?? 10000;
+    player.gold = player.gold ?? 0;
+    player.xp = player.xp ?? 0;
+    player.crit = player.crit ?? 5;
+    player.dodge = player.dodge ?? 5;
+    player.skillPoints = player.skillPoints ?? 5;
+    player.army = player.army ?? 1000;
+
+    // --- Bot ---
+    function regenerateBotHealth() {
+        const last = parseInt(localStorage.getItem(botTimeKey)) || 0;
+        const now = Date.now();
+        if(now - last >= 3*60*1000) localStorage.setItem(botHPKey, maxBotHealthBase);
+    }
+    regenerateBotHealth();
+    let botHealth = parseInt(localStorage.getItem(botHPKey)) || maxBotHealthBase;
+    let botArmy = parseInt(localStorage.getItem(botArmyKey)) || 800;
+    let botCash = parseInt(localStorage.getItem(botCashKey)) || 5000;
+
+    // --- UI Update ---
+    function updateStats() {
+        const maxHealth = getMaxHealth();
+        const maxEnergy = getMaxEnergy();
+        const maxAmmo = getMaxAmmo();
+
+        document.getElementById('playerHealthDisplay').textContent = player.health;
+        document.getElementById('playerMaxHealthDisplay').textContent = maxHealth;
+        document.getElementById('energyDisplay').textContent = player.energy;
+        document.getElementById('maxEnergyDisplay').textContent = maxEnergy;
+        document.getElementById('ammoDisplay').textContent = player.ammo;
+        document.getElementById('maxAmmoDisplay').textContent = maxAmmo;
+        document.getElementById('cashDisplay').textContent = player.cash;
+        document.getElementById('goldDisplay').textContent = player.gold;
+        document.getElementById('levelDisplay').textContent = player.level;
+        document.getElementById('xpDisplay').textContent = player.xp;
+        document.getElementById('xpNeededDisplay').textContent = xpNeeded(player.level);
+
+        document.getElementById('playerHealthBar').style.width = (player.health/maxHealth*100) + "%";
+
+        document.getElementById('playerHealthDisplay').classList.toggle('critical', player.health <= maxHealth*0.15);
+        document.getElementById('energyDisplay').classList.toggle('critical', player.energy <= 0);
+        document.getElementById('ammoDisplay').classList.toggle('critical', player.ammo <= 0);
+    }
+
+    function saveStats() {
+        savePlayer(player);
+        localStorage.setItem(botHPKey, botHealth);
+        localStorage.setItem(botTimeKey, Date.now());
+        localStorage.setItem(botArmyKey, botArmy);
+        localStorage.setItem(botCashKey, botCash);
+    }
+
+    function appendLog(msg) {
+        const log = document.getElementById('battleLog');
+        log.innerHTML = msg + "<br><br>" + log.innerHTML;
+        log.scrollTop = 0;
+    }
+
+    // --- Attack Logic ---
+    function attack() {
+        if(player.health<=0){ appendLog("You are dead!"); return; }
+        if(botHealth<=0){ appendLog("Opponent already dead!"); return; }
+        if(player.ammo<=0){ appendLog("No ammo left."); return; }
+
+        document.getElementById('attackBtn').disabled = true;
+        setTimeout(()=>{document.getElementById('attackBtn').disabled=false;}, 5000);
+
+        player.ammo--;
+
+        let playerDamage = Math.floor(Math.random()*30)+10;
+        let botDamage = Math.floor(player.health*(Math.random()*(5-2)+2)/100);
+
+        const playerDodged = Math.random() < (player.dodge/100);
+        const botDodged = Math.random() < 0.05;
+
+        let isCritical = false;
+        if(!botDodged && Math.random() < (player.crit/100)){
+            isCritical=true;
+            playerDamage = Math.floor(playerDamage*((Math.random()*0.5)+2));
+        }
+
+        if(playerDodged) playerDamage=0;
+        if(botDodged) botDamage=0;
+
+        botHealth -= playerDamage;
+        player.health -= botDamage;
+        if(botHealth<0) botHealth=0;
+        if(player.health<0) player.health=0;
+
+        const defenderArmyLost = Math.floor(botArmy*((Math.random()*(8-3)+3)/100));
+        const attackerArmyLost = Math.floor(player.army*((Math.random()*3)/100));
+        botArmy -= defenderArmyLost; if(botArmy<0) botArmy=0;
+        player.army -= attackerArmyLost; if(player.army<0) player.army=0;
+
+        let cashStolen=0;
+        if(botCash>0){
+            const percent = (Math.random()*(5-1)+1)/100;
+            cashStolen = Math.floor(botCash*percent);
+            botCash -= cashStolen;
+            player.cash += cashStolen;
+        }
+
+        let xpGained = Math.floor(Math.random()*(50-25+1))+25;
+        let cashGained = Math.floor(Math.random()*(300-90+1))+90;
+        player.xp += xpGained; player.cash += cashGained;
+
+        let levelUpMsg="";
+        while(player.xp >= xpNeeded(player.level)){
+            player.xp -= xpNeeded(player.level);
+            player.level++;
+            player.skillPoints +=5;
+            levelUpMsg += `<br>📈 LEVEL UP! Now Level ${player.level}, +5 skill points!`;
+        }
+
+        let msg="";
+        if(botHealth<=0 && player.health>0){
+            const finalCash = Math.floor(Math.random()*4000)+6000;
+            const finalXP = Math.floor(Math.random()*300)+200;
+            player.cash += finalCash; player.xp += finalXP;
+            msg = `<strong>💥 YOU KILLED ${botName.toUpperCase()}!</strong><br>
+                   You dealt ${playerDamage} damage and took ${botDamage} damage.<br>
+                   💰 Stole $${cashStolen}, +$${cashGained} , +$${finalCash} final<br>
+                   ⭐ XP gained: +${xpGained} , +${finalXP} final<br>
+                   🪖 Bot lost ${defenderArmyLost} soldiers, You lost ${attackerArmyLost} soldiers${levelUpMsg}`;
+            if(botType==='player'){
+                msg+=`<br><button id="cutEarBtn" class="fatality-btn">✂️ Cut Ear</button>
+                      <button id="pardonBtn" class="fatality-btn">🕊️ Pardon</button>`;
+                setTimeout(()=>{document.getElementById('cutEarBtn').onclick=cutEar; document.getElementById('pardonBtn').onclick=pardonPlayer;},100);
+            }
+        } else if(player.health<=0 && botHealth>0){
+            msg = `<strong>💀 YOU WERE KILLED BY ${botName.toUpperCase()}!</strong><br>
+                   You dealt ${playerDamage} and took ${botDamage} damage.<br>
+                   💰 Cash stolen: $${cashStolen}<br>🪖 Bot lost ${defenderArmyLost}, You lost ${attackerArmyLost}${levelUpMsg}`;
+        } else if(player.health<=0 && botHealth<=0){
+            msg = `<strong>⚔️ BOTH FELL!</strong><br>
+                   You dealt ${playerDamage} and took ${botDamage} damage.<br>
+                   💰 Cash stolen: $${cashStolen}<br>🪖 Bot lost ${defenderArmyLost}, You lost ${attackerArmyLost}${levelUpMsg}`;
+        } else {
+            msg = (playerDamage===0 && botDamage===0) ? `Both dodged!` :
+                  (playerDamage===0) ? `You dodged. Bot hit ${botDamage}. +$${cashGained} cash, +${xpGained} XP` :
+                  (botDamage===0) ? `Bot dodged. You hit ${playerDamage}. +$${cashGained} cash, +${xpGained} XP` :
+                  `You hit ${botName} for ${playerDamage}, took ${botDamage}. +$${cashGained}, +${xpGained} XP`;
+        }
+
+        appendLog(msg);
+        updateStats();
+        saveStats();
+    }
+
+    // --- Fatality Actions ---
+    function cutEar(){ appendLog(`✂️ You performed a Cut Ear on ${botName}!`); disableFatalityButtons();}
+    function pardonPlayer(){ appendLog(`🕊️ You pardoned ${botName}.`); disableFatalityButtons();}
+    function disableFatalityButtons(){
+        const cut = document.getElementById('cutEarBtn');
+        const pardon = document.getElementById('pardonBtn');
+        if(cut) cut.disabled=true;
+        if(pardon) pardon.disabled=true;
+    }
+
+    // --- Energy Regen ---
+    function regenEnergy(){
+        const lastRegen = parseInt(localStorage.getItem('lastEnergyRegen')) || 0;
+        const now = Date.now();
+        if(!lastRegen || now-lastRegen>=3*60*1000){
+            player.energy = Math.min(player.energy + 10, getMaxEnergy());
+            localStorage.setItem('lastEnergyRegen', now);
+            updateStats();
+            saveStats();
+        }
+    }
+
+    setInterval(regenEnergy, 10000);
+    updateStats();
+
+    document.getElementById('attackBtn').onclick = attack;
+
+    // --- Level Up Notification ---
+    function showLevelUpNotification() {
+        document.getElementById("levelUpMessage").style.display = "block";
+        setTimeout(() => {
+            document.getElementById("levelUpMessage").style.display = "none";
+            localStorage.removeItem("levelUpNotice");
+        }, 5000);
+    }
+
+    if (localStorage.getItem("levelUpNotice") === "true") {
+        showLevelUpNotification();
+    }
+    window.addEventListener("storage", function (e) {
+        if (e.key === "levelUpNotice" && e.newValue === "true") {
+            showLevelUpNotification();
+        }
+    });
+</script>
+
+</body>
+</html>

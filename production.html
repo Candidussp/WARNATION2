@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>⛏️ WARNATION - Production</title>
+<style>
+  body {
+    background-color: darkblue;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: gold;
+  }
+  .menu {
+    margin-bottom: 20px;
+  }
+  .menu a {
+    color: skyblue;
+    margin-right: 15px;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  .mines-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .mine {
+    border: 2px solid white;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  .mine h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: gold;
+  }
+  .status {
+    margin: 8px 0;
+    font-weight: bold;
+  }
+  button {
+    background-color: navy;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background-color: gold;
+    color: black;
+  }
+  button:disabled {
+    background-color: gray;
+    cursor: default;
+  }
+</style>
+<script src="PlayerBrain.js"></script>
+<script>
+  // Restrict direct access by level
+  if (typeof checkLevelRequirement === 'function') {
+    if (!checkLevelRequirement(3)) {
+      // checkLevelRequirement will redirect if not allowed
+      throw new Error('Level restriction: redirecting to homepage');
+    }
+  }
+</script>
+</head>
+<body>
+
+<h1>⛏️ WARNATION - Production</h1>
+
+<div class="menu">
+  <a href="HomePage.html">🏠 Home</a>
+  <a href="war.html">WAR</a>
+  <a href="missions.html">MISSIONS</a>
+  <a href="production.html"><strong>PRODUCTION</strong></a>
+  <a href="units.html">UNITS</a>
+  <!-- add other menu links if needed -->
+</div>
+
+<div class="mines-container">
+  <div class="mine" id="mine1">
+    <h3>Gold Mine 1</h3>
+    <div class="status" id="status1">Unlocked and ready.</div>
+    <button id="start1">Start Mining</button>
+    <button id="claim1" style="display:none;">Claim Gold</button>
+  </div>
+
+  <div class="mine" id="mine2">
+    <h3>Gold Mine 2 (Locked - 500 Gold)</h3>
+    <div class="status" id="status2">Locked. Purchase to unlock.</div>
+    <button id="buy2">Purchase for 500 Gold</button>
+    <button id="start2" style="display:none;">Start Mining</button>
+    <button id="claim2" style="display:none;">Claim Gold</button>
+  </div>
+
+  <div class="mine" id="mine3">
+    <h3>Gold Mine 3 (Locked - 1,000 Gold)</h3>
+    <div class="status" id="status3">Locked. Purchase to unlock.</div>
+    <button id="buy3">Purchase for 1,000 Gold</button>
+    <button id="start3" style="display:none;">Start Mining</button>
+    <button id="claim3" style="display:none;">Claim Gold</button>
+  </div>
+</div>
+
+<script>
+  // Initialize player if not already
+  function initializePlayer() {
+    if (!localStorage.getItem('playerStats')) {
+      const defaultStats = {
+        health: 300,
+        maxHealth: 300,
+        energy: 500,
+        maxEnergy: 500,
+        ammo: 20,
+        maxAmmo: 20,
+        cash: 10000,
+        gold: 0,
+        xp: 0,
+        level: 1
+      };
+      localStorage.setItem('playerStats', JSON.stringify(defaultStats));
+    }
+  }
+
+  // Constants
+  const miningDuration = 30 * 60 * 1000; // 30 minutes in ms
+  const todayDateStr = new Date().toISOString().slice(0,10);
+
+  // Load player stats from localStorage
+  function getPlayer() {
+    return JSON.parse(localStorage.getItem('playerStats')) || {};
+  }
+  function savePlayer(player) {
+    localStorage.setItem('playerStats', JSON.stringify(player));
+  }
+
+  // Load mine state or initialize default
+  function loadMineState(mineId) {
+    const data = localStorage.getItem('mineState_' + mineId);
+    if (data) return JSON.parse(data);
+    const defaultUnlocked = (mineId === 'mine1');
+    return {
+      unlocked: defaultUnlocked,
+      miningStart: null,
+      lastClaimDate: null
+    };
+  }
+  function saveMineState(mineId, state) {
+    localStorage.setItem('mineState_' + mineId, JSON.stringify(state));
+  }
+
+  // Update UI for each mine
+  function updateMineUI(mineId) {
+    const mineState = loadMineState(mineId);
+    const player = getPlayer();
+
+    const statusEl = document.getElementById('status' + mineId.slice(-1));
+    const startBtn = document.getElementById('start' + mineId.slice(-1));
+    const claimBtn = document.getElementById('claim' + mineId.slice(-1));
+    const buyBtn = document.getElementById('buy' + mineId.slice(-1));
+
+    if (mineState.unlocked) {
+      if(buyBtn) buyBtn.style.display = 'none';
+
+      // Calculate energy cost based on player level
+      const baseEnergyCost = 50;
+      const level = player.level ?? 1;
+      const energyCost = Math.ceil(baseEnergyCost * Math.pow(1.05, level - 1));
+
+      if(startBtn) {
+        startBtn.style.display = 'inline-block';
+        startBtn.textContent = `Start Mining (-${energyCost} Energy)`;
+      }
+
+      statusEl.textContent = '';
+    } else {
+      if(buyBtn) buyBtn.style.display = 'inline-block';
+      if(startBtn) startBtn.style.display = 'none';
+      if(claimBtn) claimBtn.style.display = 'none';
+      statusEl.textContent = 'Locked. Purchase to unlock.';
+      return;
+    }
+
+    if (mineState.miningStart) {
+      const now = Date.now();
+      const elapsed = now - mineState.miningStart;
+
+      if (elapsed >= miningDuration) {
+        statusEl.textContent = 'Mining complete! You can claim your gold.';
+        if(claimBtn) claimBtn.style.display = 'inline-block';
+        if(startBtn) startBtn.style.display = 'none';
+      } else {
+        const remainingMs = miningDuration - elapsed;
+        const minutes = Math.floor(remainingMs / 60000);
+        const seconds = Math.floor((remainingMs % 60000) / 1000);
+        statusEl.textContent = `Mining... Time left: ${minutes}m ${seconds}s`;
+        if(claimBtn) claimBtn.style.display = 'none';
+        if(startBtn) startBtn.style.display = 'none';
+      }
+    } else {
+      if (mineState.lastClaimDate === todayDateStr) {
+        statusEl.textContent = 'You have mined this mine today. Come back tomorrow.';
+        if(claimBtn) claimBtn.style.display = 'none';
+        if(startBtn) startBtn.style.display = 'none';
+      } else {
+        statusEl.textContent = 'Ready to start mining.';
+        if(claimBtn) claimBtn.style.display = 'none';
+        if(startBtn) startBtn.style.display = 'inline-block';
+      }
+    }
+  }
+
+  // Purchase mine unlocking
+  function purchaseMine(mineId, cost) {
+    const player = getPlayer();
+    if (player.gold >= cost) {
+      player.gold -= cost;
+      savePlayer(player);
+
+      const mineState = loadMineState(mineId);
+      mineState.unlocked = true;
+      saveMineState(mineId, mineState);
+
+      updateMineUI(mineId);
+      alert(`You purchased ${mineId.replace('mine', 'Gold Mine ')}!`);
+    } else {
+      alert('Not enough gold!');
+    }
+  }
+
+  // Start mining function
+  function startMining(mineId) {
+    const mineState = loadMineState(mineId);
+    const player = getPlayer();
+    const today = todayDateStr;
+
+    // Calculate energy cost based on level
+    const baseEnergyCost = 50;
+    const level = player.level ?? 1;
+    const energyCost = Math.ceil(baseEnergyCost * Math.pow(1.05, level - 1));
+
+    if (player.energy < energyCost) {
+      alert(`Not enough energy to start mining! You need ${energyCost} energy but have only ${player.energy}.`);
+      return;
+    }
+
+    if (mineState.lastClaimDate === today) {
+      alert('You already mined this mine today. Come back tomorrow!');
+      updateMineUI(mineId);
+      return;
+    }
+
+    player.energy -= energyCost;
+    savePlayer(player);
+
+    mineState.miningStart = Date.now();
+    saveMineState(mineId, mineState);
+    updateMineUI(mineId);
+  }
+
+  // Claim gold reward after mining with weighted chances
+  function claimGold(mineId) {
+    const mineState = loadMineState(mineId);
+    const player = getPlayer();
+    const now = Date.now();
+
+    if (!mineState.miningStart) {
+      alert('You have not started mining yet.');
+      return;
+    }
+
+    if (now - mineState.miningStart < miningDuration) {
+      alert('Mining not completed yet!');
+      return;
+    }
+
+    // Weighted random gold reward:
+    const rand = Math.random();
+    let goldReward;
+
+    if (rand < 0.7) {
+      // 70% chance: 10-30 gold
+      goldReward = Math.floor(Math.random() * (30 - 10 + 1)) + 10;
+    } else if (rand < 0.9) {
+      // 20% chance: 30-40 gold
+      goldReward = Math.floor(Math.random() * (40 - 30 + 1)) + 30;
+    } else {
+      // 10% chance: 40-58 gold
+      goldReward = Math.floor(Math.random() * (58 - 40 + 1)) + 40;
+    }
+
+    player.gold = (player.gold ?? 0) + goldReward;
+    savePlayer(player);
+
+    mineState.miningStart = null;
+    mineState.lastClaimDate = todayDateStr;
+    saveMineState(mineId, mineState);
+
+    alert(`You claimed ${goldReward} gold from ${mineId.replace('mine', 'Gold Mine ')}!`);
+    updateMineUI(mineId);
+  }
+
+  // Setup UI and buttons
+  function setup() {
+    updateMineUI('mine1');
+    updateMineUI('mine2');
+    updateMineUI('mine3');
+
+    document.getElementById('start1').onclick = () => startMining('mine1');
+    document.getElementById('claim1').onclick = () => claimGold('mine1');
+
+    document.getElementById('buy2').onclick = () => purchaseMine('mine2', 500);
+    document.getElementById('start2').onclick = () => startMining('mine2');
+    document.getElementById('claim2').onclick = () => claimGold('mine2');
+
+    document.getElementById('buy3').onclick = () => purchaseMine('mine3', 1000);
+    document.getElementById('start3').onclick = () => startMining('mine3');
+    document.getElementById('claim3').onclick = () => claimGold('mine3');
+
+    // Refresh UI every second
+    setInterval(() => {
+      updateMineUI('mine1');
+      updateMineUI('mine2');
+      updateMineUI('mine3');
+    }, 1000);
+  }
+
+  initializePlayer();
+
+  window.onload = setup;
+</script>
+
+</body>
+</html>

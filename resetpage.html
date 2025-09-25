@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Reset Page - WARNATION</title>
+<style>
+  body {
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 20px;
+  }
+  button {
+    background-color: #0044cc;
+    color: white;
+    font-weight: bold;
+    padding: 12px 25px;
+    margin: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover {
+    background-color: #0033aa;
+  }
+  a {
+    color: yellow;
+    font-weight: bold;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 25px;
+  }
+</style>
+</head>
+<body>
+
+<a href="HomePage.html">← Back to Home</a>
+<h1>Reset & Setup Page - WARNATION</h1>
+
+<button id="resetPlayer">Reset Player Stats</button>
+<button id="resetAchievements">Reset Achievements</button>
+<button id="resetBotData">Reset Bot Data</button>
+<button id="resetAll">Reset All Data</button>
+
+<div id="status" style="margin-top: 20px; font-size: 18px;"></div>
+
+<script>
+  // Default Player Stats
+  const defaultPlayerStats = {
+    health: 300,
+    maxHealth: 300,
+    energy: 500,
+    maxEnergy: 500,
+    ammo: 20,
+    maxAmmo: 20,
+    cash: 10000,
+    gold: 0,
+    xp: 0,
+    level: 1,
+    skillPoints: 5,
+    critChance: 0,
+    dodgeChance: 0,
+    army: 1000
+  };
+
+  // Default Achievements
+  const defaultAchievements = {
+    kills: 0,
+    deaths: 0,
+    questsCompleted: 0,
+    earsCut: 0,
+    playersPardoned: 0,
+    victories: 0,
+    xpEarned: 0,
+    sanctionsExecuted: 0,
+    firstLoginDate: new Date().toISOString().split("T")[0],
+    daysInGame: 1
+  };
+
+  function resetPlayer() {
+    localStorage.setItem('playerStats', JSON.stringify(defaultPlayerStats));
+    updateStatus("Player stats reset.");
+  }
+
+  function resetAchievements() {
+    localStorage.setItem('achievements', JSON.stringify(defaultAchievements));
+    updateStatus("Achievements reset.");
+  }
+
+  function resetBotData() {
+    // Example bot data reset
+    localStorage.setItem('bot_Enemy Bot_hp', '300');
+    localStorage.setItem('bot_Enemy Bot_lastTime', Date.now());
+    localStorage.setItem('bot_Enemy Bot_army', '800');
+    localStorage.setItem('bot_Enemy Bot_cash', '5000');
+    updateStatus("Bot data reset.");
+  }
+
+  function resetAll() {
+    resetPlayer();
+    resetAchievements();
+    resetBotData();
+    updateStatus("All game data reset.");
+  }
+
+  function updateStatus(msg) {
+    document.getElementById('status').textContent = msg;
+  }
+
+  document.getElementById('resetPlayer').addEventListener('click', resetPlayer);
+  document.getElementById('resetAchievements').addEventListener('click', resetAchievements);
+  document.getElementById('resetBotData').addEventListener('click', resetBotData);
+  document.getElementById('resetAll').addEventListener('click', resetAll);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Fake Player Generator - WARNATION</title>
+<style>
+  body {
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 20px;
+  }
+  button {
+    background-color: #0044cc;
+    color: white;
+    font-weight: bold;
+    padding: 12px 25px;
+    margin: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover {
+    background-color: #0033aa;
+  }
+  a {
+    color: yellow;
+    font-weight: bold;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 25px;
+  }
+  .stats {
+    margin-top: 20px;
+    text-align: left;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 16px;
+    border: 1px solid white;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  .stats p {
+    margin: 6px 0;
+  }
+</style>
+</head>
+<body>
+
+<a href="HomePage.html">← Back to Home</a>
+<h1>Fake Player Generator - WARNATION</h1>
+
+<button id="generateBtn">Generate New Fake Player</button>
+
+<div class="stats" id="playerStatsDisplay">
+  <p><em>Player stats will appear here...</em></p>
+</div>
+
+<script>
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function generateFakePlayer() {
+    const level = getRandomInt(1, 30);
+    const skillPoints = level * 5;
+    const maxHealth = 300 + (level - 1) * 15;
+    const maxEnergy = 500 + (level - 1) * 20;
+    const maxAmmo = 20 + Math.floor(level / 2);
+    const health = getRandomInt(Math.floor(maxHealth * 0.6), maxHealth);
+    const energy = getRandomInt(Math.floor(maxEnergy * 0.6), maxEnergy);
+    const ammo = getRandomInt(Math.floor(maxAmmo * 0.5), maxAmmo);
+    const cash = getRandomInt(1000, 50000);
+    const gold = getRandomInt(0, 1000);
+    const xp = getRandomInt(0, 6000 * (level ** 2));
+    const critChance = getRandomInt(0, 20);
+    const dodgeChance = getRandomInt(0, 20);
+    const army = getRandomInt(500, 5000);
+
+    const playerStats = {
+      health,
+      maxHealth,
+      energy,
+      maxEnergy,
+      ammo,
+      maxAmmo,
+      cash,
+      gold,
+      xp,
+      level,
+      skillPoints,
+      critChance,
+      dodgeChance,
+      army
+    };
+
+    localStorage.setItem('playerStats', JSON.stringify(playerStats));
+
+    displayPlayerStats(playerStats);
+  }
+
+  function displayPlayerStats(stats) {
+    const container = document.getElementById('playerStatsDisplay');
+    container.innerHTML = `
+      <p><strong>Level:</strong> ${stats.level}</p>
+      <p><strong>Health:</strong> ${stats.health} / ${stats.maxHealth}</p>
+      <p><strong>Energy:</strong> ${stats.energy} / ${stats.maxEnergy}</p>
+      <p><strong>Ammo:</strong> ${stats.ammo} / ${stats.maxAmmo}</p>
+      <p><strong>Cash:</strong> $${stats.cash}</p>
+      <p><strong>Gold:</strong> ${stats.gold}</p>
+      <p><strong>XP:</strong> ${stats.xp}</p>
+      <p><strong>Skill Points:</strong> ${stats.skillPoints}</p>
+      <p><strong>Crit Chance:</strong> ${stats.critChance}%</p>
+      <p><strong>Dodge Chance:</strong> ${stats.dodgeChance}%</p>
+      <p><strong>Army Size:</strong> ${stats.army}</p>
+    `;
+  }
+
+  document.getElementById('generateBtn').addEventListener('click', generateFakePlayer);
+
+  // generate one on page load
+  generateFakePlayer();
+</script>
+
+</body>
+</html>

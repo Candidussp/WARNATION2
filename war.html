@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head> 
+        <script src="PlayerBrain.js"></script>
+    <title>WAR PAGE - WARNATION</title>
+    <style> 
+        body {
+            background-color: darkblue;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            text-decoration: underline;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .bot {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        .attack-link {
+            color: cyan;
+            font-weight: bold;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .attack-link:hover {
+            text-decoration: underline;
+        }
+        a {
+            color: yellow;
+            font-weight: bold;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 20px;
+        }
+        .player-name {
+            color: yellow;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <center><a href="HomePage.html">WARNATION</a></center>
+
+    <div class="section">
+        <h2>INVASION</h2>
+        <div id="botList">
+            <!-- Bots and players will be loaded here dynamically -->
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>GROUP BATTLE</h2>
+        <p>Coming Soon! Prepare to join forces with allies for epic group wars.</p>
+    </div>
+
+    <div class="section">
+        <h2>SANCTION</h2>
+        <p>Impose sanctions on enemy nations to cripple their resources. (Feature in development)</p>
+    </div>
+
+    <center>
+        <u><a href="battlelog.html">Battle Log</a></u>
+    </center>
+
+<script>
+    // Your bots list
+    const bots = [
+        { name: "BOT Alpha", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Bravo", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Charlie", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Delta", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Echo", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Foxtrot", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Golf", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Hotel", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT India", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Juliet", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Kilo", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Lima", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Mike", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT November", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Oscar", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Papa", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Quebec", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Romeo", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Sierra", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Tango", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Uniform", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Victor", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Whiskey", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT X-ray", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Yankee", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Zulu", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Omega", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Titan", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Kraken", flag: "🇹🇿", level: 1, rating: 300 },
+        { name: "BOT Hydra", flag: "🇹🇿", level: 1, rating: 300 }
+    ];
+
+    // Safe load player from localStorage
+    function getRealPlayer() {
+        try {
+            let playerRaw = localStorage.getItem('playerStats');
+            if (!playerRaw) return null;
+            let player = JSON.parse(playerRaw);
+            return {
+                name: "YOU",
+                flag: "🟦",
+                level: player.level || 1,
+                rating: Math.floor((player.level || 1) * 500),
+                isPlayer: true
+            };
+        } catch (e) {
+            console.error("Error parsing playerStats:", e);
+            return null;
+        }
+    }
+
+    // Random subset helper
+    function getRandomBots(arr, count) {
+        let shuffled = arr.slice().sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    }
+
+    function loadBots() {
+        const selectedBots = getRandomBots(bots, 8);  // choose 8 bots
+        const realPlayer = getRealPlayer();
+
+        // Prepare combined list with 1-2 real players randomly inserted
+        let combinedList = [...selectedBots];
+        if (realPlayer) {
+            combinedList.splice(Math.floor(Math.random() * combinedList.length), 0, realPlayer);
+            if (Math.random() > 0.5) {
+                combinedList.splice(Math.floor(Math.random() * combinedList.length), 0, realPlayer);
+            }
+        }
+
+        const botListDiv = document.getElementById('botList');
+        botListDiv.innerHTML = '';
+
+        combinedList.forEach(entity => {
+            const div = document.createElement('div');
+            div.className = 'bot';
+
+            if (entity.isPlayer) {
+                // Add type=player in URL for real players
+                div.innerHTML = `${entity.flag} <span class="player-name" onclick="showProfile('${entity.name}')">${entity.name}</span> Lv.${entity.level} Rating ${entity.rating}
+                    <a class="attack-link" href="Candidus.html?bot=${encodeURIComponent(entity.name)}&type=player">Attack</a>`;
+            } else {
+                // Add type=bot in URL for bots
+                div.innerHTML = `${entity.flag} ${entity.name} Lv.${entity.level} Rating ${entity.rating} 
+                    <a class="attack-link" href="Candidus.html?bot=${encodeURIComponent(entity.name)}&type=bot">Attack</a>`;
+            }
+
+            botListDiv.appendChild(div);
+        });
+    }
+
+    function showProfile(name) {
+        window.location.href = `fakeplayerprofile.html?player=${encodeURIComponent(name)}`;
+    }
+
+    window.onload = loadBots;
+</script>
+
+</body>
+</html>
