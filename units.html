@@ -35,14 +35,47 @@
     margin-left: auto;
     margin-right: auto;
   }
+  .page-tabs {
+  display: inline-block;
+  background: #001f3f; /* dark blue */
+  border-radius: 12px;
+  padding: 5px 15px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+
+.page-tabs .tab-link {
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 18px;
+  display: inline-block;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.page-tabs .tab-link:hover {
+  background: #004080;
+}
+
+.page-tabs .tab-link.active {
+  background: #0074D9;
+  font-weight: bold;
+}
+
 </style>
 </head>
 <body>
 
-<div class="top-links">
-  <a class="home" href="Homepage.html">← HOME</a>
-  <a class="home" 
-</div>
+
+</div> <!-- Navigation Tabs -->
+<center><div class="page-tabs" style="margin: 15px 0; text-align: center;">
+ <a class="home" href="Homepage.html">← HOME</a>
+  <a href="Units.html" class="tab-link">Units</a>
+  <a href="Fleets.html" class="tab-link">Fleets</a>
+  <a href="SWMDS.html" class="tab-link">SWMDS</a>
+</div> </center>
+
+<hr>
+
 
 <h1> BARRACKS</h1>
 
@@ -517,15 +550,22 @@ function renderAll() {
 
 renderAll();
 </script>
+<script>
+  // Highlight current page tab
+  const current = location.pathname.split("/").pop();
+  document.querySelectorAll(".page-tabs .tab-link").forEach(link => {
+    if(link.getAttribute("href") === current){
+      link.classList.add("active");
+    }
+  });
+</script>
+
 
 <!-- ... existing content above ... -->
 
 <div id="queueList" class="small">No tasks running.</div>
 
-<div style="text-align:center; margin-top: 40px;">
-  <a href="fleets.html" style="font-weight:bold; color:#ffd34d; text-decoration:none; font-size:28px;">
-    WAR VEHICLES
-  </a>
+
 </div>
 </div>
 
